@@ -13,10 +13,13 @@ This project contains automated tests for the [restful-api.dev](https://restful-
    ```bash
    git clone <repository-url>
    cd RestfulApiTests
+   ```
 
 
 2. **Restore the packages**:
+   ```bash
    dotnet restore
+   ```
 
 
 ## Running the Tests using Visual Studio Code
@@ -26,10 +29,12 @@ This project contains automated tests for the [restful-api.dev](https://restful-
 - Run dotnet test to execute the tests.
 
 
-##Test Scenarios
+## Test Scenarios
 
 - Get list of all objects
 - Add an object using POST
 - Get a single object using the added ID
 - Update the object added using PUT
 - Delete the object using DELETE
+
+Each test validates the success of the corresponding API operation using relevant assertions.
