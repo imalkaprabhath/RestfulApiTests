@@ -14,7 +14,6 @@ public class ApiTests
         _client = new HttpClient { BaseAddress = new Uri("https://restful-api.dev/") };
     }
 
-    [Fact]
     public async Task GetListOfAllObjects()
     {
         var response = await _client.GetAsync("api/objects");
@@ -23,7 +22,6 @@ public class ApiTests
         Assert.NotEmpty(responseString);
     }
 
-    [Fact]
     public async Task AddObjectUsingPost()
     {
         var newObject = new { Name = "Test Object", Value = "Test Value" };
@@ -38,7 +36,6 @@ public class ApiTests
         Assert.Equal(newObject.Value, (string)createdObject.value);
     }
 
-    [Fact]
     public async Task GetSingleObjectUsingId()
     {
         var newObject = new { Name = "Test Object", Value = "Test Value" };
@@ -59,7 +56,6 @@ public class ApiTests
         Assert.Equal(newObject.Value, (string)retrievedObject.value);
     }
 
-    [Fact]
     public async Task UpdateObjectUsingPut()
     {
         var newObject = new { Name = "Test Object", Value = "Test Value" };
@@ -86,7 +82,6 @@ public class ApiTests
         Assert.Equal(updatedObject.Value, (string)retrievedObject.value);
     }
 
-    [Fact]
     public async Task DeleteObjectUsingDelete()
     {
         var newObject = new { Name = "Test Object", Value = "Test Value" };
