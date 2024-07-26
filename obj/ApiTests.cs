@@ -5,98 +5,107 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Xunit;
 
-public class ApiTests
+namespace RestfulApiTests
 {
-    private readonly HttpClient _client;
-
-    public ApiTests()
+    public class ApiTests
     {
-        _client = new HttpClient { BaseAddress = new Uri("https://restful-api.dev/") };
-    }
+        private readonly HttpClient _client;
 
-    public async Task GetListOfAllObjects()
-    {
-        var response = await _client.GetAsync("api/objects");
-        response.EnsureSuccessStatusCode();
-        var responseString = await response.Content.ReadAsStringAsync();
-        Assert.NotEmpty(responseString);
-    }
+        public ApiTests()
+        {
+            _client = new HttpClient { BaseAddress = new Uri("https://restful-api.dev/") };
+        }
 
-    public async Task AddObjectUsingPost()
-    {
-        var newObject = new { Name = "Test Object", Value = "Test Value" };
-        var content = new StringContent(JsonConvert.SerializeObject(newObject), Encoding.UTF8, "application/json");
+        [Fact]
+        public async Task GetListOfAllObjects()
+        {
+            // Act
+            var response = await _client.GetAsync("api/objects");
+            
+            // Assert
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsStringAsync();
+            Assert.False(string.IsNullOrEmpty(content), "Response content should not be empty");
+        }
 
-        var response = await _client.PostAsync("api/objects", content);
-        response.EnsureSuccessStatusCode();
-        var responseString = await response.Content.ReadAsStringAsync();
-        var createdObject = JsonConvert.DeserializeObject<dynamic>(responseString);
+        [Fact]
+        public async Task AddObjectUsingPost()
+        {
+            // Arrange
+            var newObject = new { name = "Test Object", description = "This is a test object" };
+            var content = new StringContent(JsonConvert.SerializeObject(newObject), Encoding.UTF8, "application/json");
 
-        Assert.Equal(newObject.Name, (string)createdObject.name);
-        Assert.Equal(newObject.Value, (string)createdObject.value);
-    }
+            // Act
+            var response = await _client.PostAsync("api/objects", content);
+            
+            // Assert
+            response.EnsureSuccessStatusCode();
+            var responseBody = await response.Content.ReadAsStringAsync();
+            var createdObject = JsonConvert.DeserializeObject<dynamic>(responseBody);
+            Assert.NotNull(createdObject.id);
+        }
 
-    public async Task GetSingleObjectUsingId()
-    {
-        var newObject = new { Name = "Test Object", Value = "Test Value" };
-        var content = new StringContent(JsonConvert.SerializeObject(newObject), Encoding.UTF8, "application/json");
+        [Fact]
+        public async Task GetSingleObjectById()
+        {
+            // Arrange
+            var newObject = new { name = "Test Object", description = "This is a test object" };
+            var content = new StringContent(JsonConvert.SerializeObject(newObject), Encoding.UTF8, "application/json");
+            var createResponse = await _client.PostAsync("api/objects", content);
+            var createdObject = JsonConvert.DeserializeObject<dynamic>(await createResponse.Content.ReadAsStringAsync());
+            var objectId = createdObject.id;
 
-        var createResponse = await _client.PostAsync("api/objects", content);
-        createResponse.EnsureSuccessStatusCode();
-        var createResponseString = await createResponse.Content.ReadAsStringAsync();
-        var createdObject = JsonConvert.DeserializeObject<dynamic>(createResponseString);
-        var objectId = (string)createdObject.id;
+            // Act
+            var response = await _client.GetAsync($"api/objects/{objectId}");
 
-        var getResponse = await _client.GetAsync($"api/objects/{objectId}");
-        getResponse.EnsureSuccessStatusCode();
-        var getResponseString = await getResponse.Content.ReadAsStringAsync();
-        var retrievedObject = JsonConvert.DeserializeObject<dynamic>(getResponseString);
+            // Assert
+            response.EnsureSuccessStatusCode();
+            var responseBody = await response.Content.ReadAsStringAsync();
+            var fetchedObject = JsonConvert.DeserializeObject<dynamic>(responseBody);
+            Assert.Equal(objectId.ToString(), fetchedObject.id.ToString());
+        }
 
-        Assert.Equal(newObject.Name, (string)retrievedObject.name);
-        Assert.Equal(newObject.Value, (string)retrievedObject.value);
-    }
+        [Fact]
+        public async Task UpdateObjectUsingPut()
+        {
+            // Arrange
+            var newObject = new { name = "Test Object", description = "This is a test object" };
+            var content = new StringContent(JsonConvert.SerializeObject(newObject), Encoding.UTF8, "application/json");
+            var createResponse = await _client.PostAsync("api/objects", content);
+            var createdObject = JsonConvert.DeserializeObject<dynamic>(await createResponse.Content.ReadAsStringAsync());
+            var objectId = createdObject.id;
+            
+            var updatedObject = new { name = "Updated Test Object", description = "This is an updated test object" };
+            var updateContent = new StringContent(JsonConvert.SerializeObject(updatedObject), Encoding.UTF8, "application/json");
 
-    public async Task UpdateObjectUsingPut()
-    {
-        var newObject = new { Name = "Test Object", Value = "Test Value" };
-        var content = new StringContent(JsonConvert.SerializeObject(newObject), Encoding.UTF8, "application/json");
+            // Act
+            var response = await _client.PutAsync($"api/objects/{objectId}", updateContent);
 
-        var createResponse = await _client.PostAsync("api/objects", content);
-        createResponse.EnsureSuccessStatusCode();
-        var createResponseString = await createResponse.Content.ReadAsStringAsync();
-        var createdObject = JsonConvert.DeserializeObject<dynamic>(createResponseString);
-        var objectId = (string)createdObject.id;
+            // Assert
+            response.EnsureSuccessStatusCode();
+            var responseBody = await response.Content.ReadAsStringAsync();
+            var fetchedObject = JsonConvert.DeserializeObject<dynamic>(responseBody);
+            Assert.Equal("Updated Test Object", fetchedObject.name.ToString());
+            Assert.Equal("This is an updated test object", fetchedObject.description.ToString());
+        }
 
-        var updatedObject = new { Name = "Updated Object", Value = "Updated Value" };
-        var updateContent = new StringContent(JsonConvert.SerializeObject(updatedObject), Encoding.UTF8, "application/json");
+        [Fact]
+        public async Task DeleteObjectUsingDelete()
+        {
+            // Arrange
+            var newObject = new { name = "Test Object", description = "This is a test object" };
+            var content = new StringContent(JsonConvert.SerializeObject(newObject), Encoding.UTF8, "application/json");
+            var createResponse = await _client.PostAsync("api/objects", content);
+            var createdObject = JsonConvert.DeserializeObject<dynamic>(await createResponse.Content.ReadAsStringAsync());
+            var objectId = createdObject.id;
 
-        var updateResponse = await _client.PutAsync($"api/objects/{objectId}", updateContent);
-        updateResponse.EnsureSuccessStatusCode();
+            // Act
+            var response = await _client.DeleteAsync($"api/objects/{objectId}");
 
-        var getResponse = await _client.GetAsync($"api/objects/{objectId}");
-        getResponse.EnsureSuccessStatusCode();
-        var getResponseString = await getResponse.Content.ReadAsStringAsync();
-        var retrievedObject = JsonConvert.DeserializeObject<dynamic>(getResponseString);
-
-        Assert.Equal(updatedObject.Name, (string)retrievedObject.name);
-        Assert.Equal(updatedObject.Value, (string)retrievedObject.value);
-    }
-
-    public async Task DeleteObjectUsingDelete()
-    {
-        var newObject = new { Name = "Test Object", Value = "Test Value" };
-        var content = new StringContent(JsonConvert.SerializeObject(newObject), Encoding.UTF8, "application/json");
-
-        var createResponse = await _client.PostAsync("api/objects", content);
-        createResponse.EnsureSuccessStatusCode();
-        var createResponseString = await createResponse.Content.ReadAsStringAsync();
-        var createdObject = JsonConvert.DeserializeObject<dynamic>(createResponseString);
-        var objectId = (string)createdObject.id;
-
-        var deleteResponse = await _client.DeleteAsync($"api/objects/{objectId}");
-        deleteResponse.EnsureSuccessStatusCode();
-
-        var getResponse = await _client.GetAsync($"api/objects/{objectId}");
-        Assert.False(getResponse.IsSuccessStatusCode);
+            // Assert
+            response.EnsureSuccessStatusCode();
+            var getResponse = await _client.GetAsync($"api/objects/{objectId}");
+            Assert.False(getResponse.IsSuccessStatusCode, "Object should be deleted");
+        }
     }
 }
